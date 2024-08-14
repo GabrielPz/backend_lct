@@ -1,0 +1,230 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String  @id @default(uuid())
+  nome         String
+  email        String  @unique
+  password     String
+  profilePhoto String? @map("profile_photo")
+
+  Banco          Banco[]
+  forgotPassword forgotPassword?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model forgotPassword {
+  id           String      @id @default(uuid())
+  token        String
+  expireAt     DateTime    @map("expire_at")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+  User         User?       @relation(fields: [userId], references: [id])
+  userId       String?     @unique
+  Fornecedor   Fornecedor? @relation(fields: [fornecedorId], references: [id])
+  fornecedorId String?     @unique
+
+  @@map("forgot_password_admin")
+}
+
+model Banco {
+  id          String @id @default(uuid())
+  banco       String
+  agencia     String
+  conta       String
+  tipoDeConta String @map("tipo_de_conta")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  User      User     @relation(fields: [userId], references: [id])
+  userId    String
+
+  @@map("bancos")
+}
+
+model Fornecedor {
+  id          String @id @default(uuid())
+  nome        String
+  email       String @unique
+  password    String
+  cnpj        String @unique
+  telefone    String
+  logradouro  String
+  numero      String
+  bairro      String
+  cidade      String
+  estado      String
+  banco       String
+  agencia     String
+  conta       String
+  tipoDeConta String @map("tipo_de_conta")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  areaAtuacao              areaAtuacao[]
+  Proposta                 Proposta[]
+  forgotPassword           forgotPassword?
+  aprovacaoLoginFornecedor aprovacaoLoginFornecedor?
+  fornecedorItemProposta   fornecedorItemProposta[]
+
+  @@map("fornecedores")
+}
+
+model aprovacaoLoginFornecedor {
+  id           String      @id @default(uuid())
+  token        String
+  expireAt     DateTime    @map("expire_at")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+  Fornecedor   Fornecedor? @relation(fields: [fornecedorId], references: [id])
+  fornecedorId String?     @unique
+
+  @@map("aprovacao_login_fornecedor")
+}
+
+model areaAtuacao {
+  id   String @id @default(uuid())
+  nome String
+
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+  Fornecedor   Fornecedor? @relation(fields: [fornecedorId], references: [id])
+  fornecedorId String?
+
+  @@map("area_atuacao")
+}
+
+model Proposta {
+  id                      String                   @id @default(uuid())
+  title                   String
+  idContratacaoPNCP       String                   @map("id_contratacao_pncp")
+  modalidadeDaContratacao String                   @map("modalidade_da_contratacao")
+  ultimaAtualizacao       DateTime                 @map("ultima_atualizacao")
+  orgao                   String
+  local                   String
+  estado                  String
+  objeto                  String
+  fornecedorId            String
+  pncpId                  String                   @map("pncp_id")
+  createdAt               DateTime                 @default(now()) @map("created_at")
+  updatedAt               DateTime                 @updatedAt @map("updated_at")
+  fornecedor              Fornecedor               @relation(fields: [fornecedorId], references: [id])
+  Progresso               Progresso[]
+  itemProposta            itemProposta[]
+  editalProposta          editalProposta[]
+  fornecedorItemProposta  fornecedorItemProposta[]
+  emailsProposta          emailsProposta[]
+
+  @@map("editais")
+}
+
+model emailsProposta {
+  id         String  @id @default(uuid())
+  email      String
+  propostaId String
+  isSent     Boolean @default(false) @map("is_sent")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  Proposta  Proposta @relation(fields: [propostaId], references: [id])
+
+  @@map("email_propostas")
+}
+
+model itemProposta {
+  id                    String  @id @default(uuid())
+  numeroItem            Int
+  descricao             String
+  valorUnitarioEstimado Float   @map("valor_unitario_estimado")
+  valorTotalEstimado    Float   @map("valor_total_estimado")
+  quantidade            Int
+  unidadeMedida         String  @map("unidade_medida")
+  tipo                  String
+  categoria             String
+  beneficios            String
+  situacao              String
+  produtoManufaturado   Boolean @map("produto_manufaturado")
+  criterioJulgamento    String  @map("criterio_julgamento")
+  sigiloso              Boolean @default(false)
+  propostaId            String
+
+  isApproved Boolean @default(false) @map("is_approved")
+
+  fornecedorItemProposta fornecedorItemProposta?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  Proposta  Proposta @relation(fields: [propostaId], references: [id])
+
+  @@map("item_editais")
+}
+
+model fornecedorItemProposta {
+  id                    String @id @default(uuid())
+  valorUnitarioEstimado Float  @map("valor_unitario_estimado")
+  valorTotalEstimado    Float  @map("valor_total_estimado")
+  quantidade            Int
+  propostaId            String
+  itemPropostaId        String @unique @map("item_proposta_id")
+  fornecedorId          String @map("fornecedor_id")
+
+  isApproved Boolean @default(false) @map("is_approved")
+  isRead     Boolean @default(false) @map("notificacao_approved")
+
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  Proposta     Proposta     @relation(fields: [propostaId], references: [id])
+  itemProposta itemProposta @relation(fields: [itemPropostaId], references: [id])
+  Fornecedor   Fornecedor   @relation(fields: [fornecedorId], references: [id])
+
+  @@map("fornecedor_item_editais")
+}
+
+model editalProposta {
+  id                 String   @id @default(uuid())
+  titulo             String
+  status             Boolean
+  nome               String
+  descricao          String
+  dataPublicacaoPNCP DateTime @map("data_publicacao_pncp")
+  sequencialEdital   Int      @map("sequencial_edital")
+  cnpj               String
+  ano                Int
+  url                String
+  propostaId         String
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  Proposta  Proposta @relation(fields: [propostaId], references: [id])
+
+  @@map("edital_propostas")
+}
+
+model Progresso {
+  id         Int    @id @default(autoincrement())
+  descricao  String
+  propostaId String
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  Proposta  Proposta @relation(fields: [propostaId], references: [id])
+
+  @@map("progressos")
+}
