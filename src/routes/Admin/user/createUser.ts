@@ -7,8 +7,11 @@ import { z } from "zod";
 
 const requestBodySchema = z.object({
   nome: z.string(),
-  email: z.string().email().transform((val) => val.toLowerCase()),
-  password: z.string().min(6)
+  email: z
+    .string()
+    .email()
+    .transform((val) => val.toLowerCase()),
+  password: z.string().min(6),
 });
 
 export async function createUser(app: FastifyInstance) {
@@ -16,32 +19,31 @@ export async function createUser(app: FastifyInstance) {
     "/user",
     {
       schema: {
-        preHandler: autenticarToken,
         summary: "Create User",
         tags: ["User"],
         headers: z.object({
-          authorization: z.string()
+          authorization: z.string(),
         }),
         body: requestBodySchema,
         response: {
           200: z.object({
             id: z.string().uuid(),
             nome: z.string(),
-            email: z.string().email()
+            email: z.string().email(),
           }),
           400: z.object({
-            message: z.string()
-          })
-        }
-      }
+            message: z.string(),
+          }),
+        },
+      },
     },
     async (request, reply) => {
       const { email, nome, password } = requestBodySchema.parse(request.body);
 
       const existingEmail = await prisma.user.findUnique({
         where: {
-          email
-        }
+          email,
+        },
       });
 
       if (existingEmail) {
@@ -54,13 +56,13 @@ export async function createUser(app: FastifyInstance) {
         data: {
           email,
           nome,
-          password: hashedPassword
+          password: hashedPassword,
         },
         select: {
           id: true,
           nome: true,
-          email: true
-        }
+          email: true,
+        },
       });
 
       if (!user) {
